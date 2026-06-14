@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "dropsweeper",
+	"version": "${version}",
+	"name": "dropsweeper",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"inkamboo"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/dropsweeper/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.inkamboo.dropsweeper.Dropsweeper"
+		],
+		"client": [
+			"com.inkamboo.dropsweeper.client.DropsweeperClient"
+		]
+	},
+	"mixins": [
+		"dropsweeper.mixins.json",
+		{
+			"config": "dropsweeper.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
