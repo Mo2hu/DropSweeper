@@ -1,4 +1,4 @@
-# dropsweeper
+# DropSweeper
 
 > 智能掉落物清扫系统 — 帮你的 Minecraft 服务器自动清理堆积的掉落物
 > 
