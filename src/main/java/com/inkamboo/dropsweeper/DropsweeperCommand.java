@@ -31,29 +31,18 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * /dropsweeper 命令树。
- * 当前支持：
- *   /dropsweeper items                  —— 清理当前世界的掉落物（2 级 OP）
- *   /dropsweeper items all              —— 清理所有世界的掉落物（2 级 OP）
- *   /dropsweeper items <world>          —— 清理指定世界的掉落物（2 级 OP）
- *   /dropsweeper dustbin [index]        —— 打开垃圾箱 UI 取出清扫时搬过来的物品（所有玩家）
- *   /dropsweeper whitelist add/remove/list <item>  —— 白名单管理（2 级 OP）
- *   /dropsweeper blacklist add/remove/list <item>  —— 黑名单管理（2 级 OP）
+ *   /dropsweeper items [all | <world>]
+ *   /dropsweeper dustbin [index]
+ *   /dropsweeper whitelist/blacklist add/remove/list <item>
+ *   /dropsweeper config reload
  */
 public class DropsweeperCommand {
 
-    /** 代名：指代所有世界 */
     private static final String ALL_ALIAS = "all";
 
     /**
-     * 把"权限等级 0-4"映射到 26.1.2 的 {@link Permission} 对象。
-     * <ul>
-     *   <li>{@code 0} → 无权限要求（任何玩家）</li>
-     *   <li>{@code 1} → {@link Permissions#COMMANDS_GAMEMASTER}</li>
-     *   <li>{@code 2} → {@link Permissions#COMMANDS_MODERATOR}（OP）</li>
-     *   <li>{@code 3} → {@link Permissions#COMMANDS_ADMIN}</li>
-     *   <li>{@code 4} → {@link Permissions#COMMANDS_OWNER}</li>
-     * </ul>
-     * 26.1.2 的 {@code Permissions} 类<b>没有</b> LEVEL_0 常量——0 级在 MC 设计中等价于"无权限要求"。
+     * 把权限等级 0-4 映射到 26.1.2 的 {@link Permission}。26.1.2 没有 LEVEL_0 常量，
+     * 0 级由 {@code hasAtLeast} 当作"任何玩家"处理。
      */
     private static Permission resolvePermission(int level) {
         return switch (level) {
@@ -65,14 +54,6 @@ public class DropsweeperCommand {
         };
     }
 
-    /**
-     * 玩家是否满足指定最低权限等级。
-     * <ul>
-     *   <li>{@code level <= 0} → 总是返回 true（任何玩家）</li>
-     *   <li>{@code level >= 1} → 检查对应 {@link Permission}</li>
-     * </ul>
-     * lambda 每次执行时调用，配置 reload 后立即生效。
-     */
     private static boolean hasAtLeast(CommandSourceStack source, int level) {
         if (level <= 0) return true;
         return source.permissions().hasPermission(resolvePermission(level));
@@ -84,24 +65,19 @@ public class DropsweeperCommand {
                 .then(Commands.literal("items")
                     // 动态读 permissionLevelClean：reload 后立即生效
                     .requires(source -> hasAtLeast(source, DropsweeperConfig.get().permissionLevelClean))
-                    // /dropsweeper items    —— 不带参数，清当前世界
                     .executes(DropsweeperCommand::sweepCurrent)
-                    // /dropsweeper items all
                     .then(Commands.literal(ALL_ALIAS)
                         .executes(DropsweeperCommand::sweepAll))
-                    // /dropsweeper items <world>
                     .then(Commands.argument("world", IdentifierArgument.id())
                         .suggests(DropsweeperCommand::suggestWorlds)
                         .executes(DropsweeperCommand::sweepWorld))
                 )
-                // /dropsweeper dustbin [index] —— 权限来自 permissionLevelDustbin
                 .then(Commands.literal("dustbin")
                     .requires(source -> hasAtLeast(source, DropsweeperConfig.get().permissionLevelDustbin))
                     .executes(ctx -> openDustbin(ctx, 0))
                     .then(Commands.argument("index", IntegerArgumentType.integer(0))
                         .executes(ctx -> openDustbin(ctx, IntegerArgumentType.getInteger(ctx, "index"))))
                 )
-                // /dropsweeper whitelist {add|remove|list} <item>
                 .then(Commands.literal("whitelist")
                     .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
                     .then(Commands.literal("add")
@@ -113,7 +89,6 @@ public class DropsweeperCommand {
                     .then(Commands.literal("list")
                         .executes(ctx -> listList(ctx, true)))
                 )
-                // /dropsweeper blacklist {add|remove|list} <item>
                 .then(Commands.literal("blacklist")
                     .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
                     .then(Commands.literal("add")
@@ -125,7 +100,6 @@ public class DropsweeperCommand {
                     .then(Commands.literal("list")
                         .executes(ctx -> listList(ctx, false)))
                 )
-                // /dropsweeper config reload —— 热重载 config/dropsweeper.json
                 .then(Commands.literal("config")
                     .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
                     .then(Commands.literal("reload")
@@ -188,10 +162,9 @@ public class DropsweeperCommand {
             true
         );
 
-        // 可点击的"打开垃圾桶 N"链接（仅手动命令触发时显示；自动清扫由 AutoSweeper 处理）
+        // 可点击的"打开垃圾桶 N"链接（手动命令触发时显示；自动清扫由 AutoSweeper 处理）
         appendDustbinLinks(context, "可打开：");
 
-        // 过载警告（手动命令触发也走同一通知逻辑）
         OverloadNotifier.INSTANCE.notify(context.getSource().getServer(), result.overloadByChunk());
 
         Dropsweeper.LOGGER.info("/dropsweeper items 清理了 {} 个掉落物，挤出了 {} 个，额外实体 {} 个",
@@ -199,9 +172,7 @@ public class DropsweeperCommand {
     }
 
     /**
-     * 给当前命令的 sender 追加一行可点击的"打开垃圾桶 i"链接（每个非空 bin 一个）。
-     * <p>
-     * 用在主消息后，让玩家一键跳到对应垃圾箱。
+     * 追加可点击的"打开垃圾桶 i"链接（每个非空 bin 一个）。
      */
     private static void appendDustbinLinks(CommandContext<CommandSourceStack> context, String prefix) {
         int[] nonEmpty = Dustbin.getInstance().nonEmptyBinIndices();
@@ -227,10 +198,7 @@ public class DropsweeperCommand {
     }
 
     /**
-     * 热重载 {@code config/dropsweeper.json}。
-     * <p>
-     * 同时同步 {@link Dustbin} 的 bin 数量（如果 {@code dustbinCount} 变了）：
-     * 增多补空 bin；减少<b>直接截断</b>多余 bin（可能丢失非空 bin 物品，回显警告）。
+     * 热重载 config/dropsweeper.json。减少 dustbinCount 时直接截断（可能丢失非空 bin 物品，回显警告）。
      */
     private static int reloadConfig(CommandContext<CommandSourceStack> context) {
         int oldCount = Dustbin.getInstance().binCount();
@@ -257,8 +225,7 @@ public class DropsweeperCommand {
     }
 
     /**
-     * 打开垃圾箱 UI。
-     * 玩家看到一个普通大箱子界面，但里面装的是清扫时搬过来的 ItemStack。
+     * 打开垃圾箱 UI。玩家看到普通大箱子界面，里面是清扫时搬过来的 ItemStack。
      */
     private static int openDustbin(CommandContext<CommandSourceStack> context, int index) {
         ServerPlayer player = context.getSource().getPlayer();
@@ -304,14 +271,6 @@ public class DropsweeperCommand {
 
     // ===================== 白/黑名单管理 =====================
 
-    /**
-     * 在白/黑名单中增删一个物品 ID。
-     *
-     * @param ctx        命令上下文
-     * @param isWhitelist true = 白名单 / false = 黑名单
-     * @param add        true = 添加 / false = 移除
-     * @return 1 = 改动成功；0 = 无变化（已在/不在名单）
-     */
     private static int modifyList(
         CommandContext<CommandSourceStack> ctx,
         boolean isWhitelist,
@@ -353,12 +312,6 @@ public class DropsweeperCommand {
         return 1;
     }
 
-    /**
-     * 列出白/黑名单的所有条目。
-     *
-     * @param ctx         命令上下文
-     * @param isWhitelist true = 白名单 / false = 黑名单
-     */
     private static int listList(
         CommandContext<CommandSourceStack> ctx,
         boolean isWhitelist

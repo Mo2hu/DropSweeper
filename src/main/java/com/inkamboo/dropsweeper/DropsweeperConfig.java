@@ -16,20 +16,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * dropsweeper 配置文件。
- * <p>
- * 位置：{@code config/dropsweeper.json}（Fabric 配置目录）。
- * 首次启动时若文件不存在则生成默认值；之后玩家可自由编辑。
- * <p>
- * 字段：
- * <ul>
- *   <li>{@code sweepIntervalSeconds}：自动清扫周期（秒）。{@code 0} 表示禁用自动清扫。</li>
- *   <li>{@code announcePointsLong}：长时间倒计时提示点（秒），例如 [60, 30, 15]。</li>
- *   <li>{@code announceShortThreshold}：短时间倒计时的秒数阈值（≤该值的整数秒每秒发一次）。</li>
- *   <li>{@code messageBeforeSweepLong}：长时间提示文案，{@code $1} 会被替换为剩余秒数。</li>
- *   <li>{@code messageBeforeSweepShort}：短时间提示文案，{@code $1} 会被替换为剩余秒数。</li>
- *   <li>{@code messageAfterSweep}：清扫完成文案，{@code $1} 为清理数量，{@code $2} 为挤出数量。</li>
- * </ul>
+ * DropSweeper 配置文件。位置 {@code config/dropsweeper.json}，首次启动时生成默认值。
  */
 public class DropsweeperConfig {
     private static final Gson GSON = new GsonBuilder()
@@ -40,65 +27,33 @@ public class DropsweeperConfig {
     public int sweepIntervalSeconds = 600;                 // 10 分钟
     public int[] announcePointsLong = {120, 60, 30};
     public int announceShortThreshold = 3;
-    public String messageBeforeSweepLong = "【dropsweeper】: 嘿嘿，$1 秒后扫地姬要开始打扫啦~ 大家快把想要的东西捡起来哦！ฅ^•ﻌ•^ฅ";
-    public String messageBeforeSweepShort = "【dropsweeper】: 主人注意啦~ 还剩 $1 秒！扫地姬要动手啦，别怪我不提醒哦！(๑•̀ㅂ•́)و✧";
-    public String messageAfterSweep = "【dropsweeper】: 打扫完成~ 这次清理了 $1 个掉落物！屋子干干净净啦~(ˊᗜˋ)♪";
+    public String messageBeforeSweepLong = "【DropSweeper】: 嘿嘿，$1 秒后扫地姬要开始打扫啦~ 大家快把想要的东西捡起来哦！ฅ^•ﻌ•^ฅ";
+    public String messageBeforeSweepShort = "【DropSweeper】: 主人注意啦~ 还剩 $1 秒！扫地姬要动手啦，别怪我不提醒哦！(๑•̀ㅂ•́)و✧";
+    public String messageAfterSweep = "【DropSweeper】: 打扫完成~ 这次清理了 $1 个掉落物！屋子干干净净啦~(ˊᗜˋ)♪";
 
-    /** 物品白名单（永不清理）。完全匹配 ID 或 {@code modid:*} 通配符。 */
-    public java.util.List<String> itemWhitelist = new java.util.ArrayList<>(java.util.List.of(
+    public List<String> itemWhitelist = new ArrayList<>(List.of(
             "minecraft:nether_star",
             "minecraft:heavy_core"
     ));
-    /** 物品黑名单（清理但不进 Dustbin）。完全匹配 ID 或 {@code modid:*} 通配符。 */
-    public java.util.List<String> itemBlacklist = new java.util.ArrayList<>(java.util.List.of(
+    public List<String> itemBlacklist = new ArrayList<>(List.of(
             "minecraft:cobblestone",
             "minecraft:sand",
             "minecraft:gravel"
     ));
-    /** 是否启用 {@code modid:*} 通配符。 */
     public boolean matchWildcard = true;
 
-    /**
-     * 垃圾箱数量。每个垃圾箱 54 槽。
-     * <p>
-     * <b>变更时</b>：增多 → 补齐空 bin（数据保留）；减少 → <b>不生效</b>（避免误删数据）。
-     * 重启时由 Dustbin.resize() 处理。
-     */
     public int dustbinCount = 1;
-    /** 垃圾箱 UI 标题前缀。最终显示为 {@code dustbinName + index}，例如 "垃圾桶 0"。 */
     public String dustbinName = "垃圾桶 ";
 
-    /**
-     * 三类提示的发送通道（ActionBar vs 聊天）。
-     * <p>
-     * ActionBar：屏幕上方小字，约 3 秒后自动消失，新消息会替换旧消息，<b>不刷屏</b>。
-     * 聊天：常规玩家消息，会留在历史里。
-     */
     public AnnouncementChannel announcementChannel = new AnnouncementChannel();
 
-    /**
-     * 提示发送通道配置。
-     * <p>
-     * JSON 配置示例：
-     * <pre>{@code
-     * "announcementChannel": {
-     *   "long": "actionbar",
-     *   "short": "chat",
-     *   "complete": "chat"
-     * }
-     * }</pre>
-     * <p>
-     * 字段名 {@code long} 是 Java 关键字，因此用 {@code longCountdown} 映射。
-     */
     public static class AnnouncementChannel {
         public static final String ACTIONBAR = "actionbar";
         public static final String CHAT = "chat";
 
-        /** 长时间倒计时（60/30/15s 之类）。默认 ActionBar 灰色，不刷屏。 */
+        // 字段名 long 是 Java 关键字，所以用 longCountdown 映射
         public String longCountdown = ACTIONBAR;
-        /** 短时间倒计时（1-10s）。默认聊天金色，醒目。 */
         public String shortCountdown = CHAT;
-        /** 清扫完成消息。默认聊天青色 + 可点击链接。 */
         public String complete = CHAT;
 
         public boolean isLongActionBar() { return ACTIONBAR.equalsIgnoreCase(longCountdown); }
@@ -106,62 +61,18 @@ public class DropsweeperConfig {
         public boolean isCompleteActionBar() { return ACTIONBAR.equalsIgnoreCase(complete); }
     }
 
-    /**
-     * 单 chunk 物品堆积阈值。清扫时如果某 chunk 中清理的物品总数超过此值，
-     * 给 OP（无 OP 时给所有玩家）发警告。
-     * <p>
-     * <b>0 = 禁用</b>过载警告。
-     * <p>
-     * 检测机制：只在清扫时按 {@code ChunkPos} 聚合已扫描到的 ItemEntity，<b>0 额外扫描</b>。
-     */
-    public int itemOverloadThreshold = 640;
+    public int itemOverloadThreshold = 640;     // 0 = 禁用
 
-    /**
-     * 额外清理的实体类型（参考 sweepermaid 的 EXTRA_ENTITY_TYPES）。
-     * <p>
-     * 命中列表的实体（箭矢、经验球、投掷物等）会在清扫时被清理。
-     * <p>
-     * <b>注意</b>：
-     * <ul>
-     *   <li>玩家（{@code Player}）永远跳过，不会被错误清理</li>
-     *   <li>ItemEntity 走主路径（白/黑名单 + Dustbin）不在此处处理</li>
-     *   <li>ID 无效或未注册会发 WARN 但不会中断加载</li>
-     *   <li>不要列入有价值的投掷物（trident / ender_pearl 等）</li>
-     * </ul>
-     */
     public List<String> extraEntityTypes = List.of(
             "minecraft:arrow",
             "minecraft:spectral_arrow",
             "minecraft:experience_orb"
     );
 
-    /**
-     * 打开垃圾箱命令的最低权限等级（参考 sweepermaid PERMISSION_LEVEL_DUSTBIN）。
-     * <p>
-     * 0 = 任何玩家都可以开垃圾箱（推荐：玩家要能取回误清物品）<br>
-     * 2 = 仅 OP 可开<br>
-     * 4 = 仅 server owner 可开
-     * <p>
-     * 影响命令：{@code /dropsweeper dustbin <index>}
-     */
-    public int permissionLevelDustbin = 0;
+    public int permissionLevelDustbin = 0;       // 0 = 任何玩家
+    public int permissionLevelClean = 2;         // 2 = OP
 
-    /**
-     * 手动清理命令的最低权限等级（参考 sweepermaid PERMISSION_LEVEL_CLEAN）。
-     * <p>
-     * 0 = 任何玩家都可以手动触发清扫<br>
-     * 2 = 仅 OP 可触发（推荐：避免普通玩家误操作触发大清扫）
-     * <p>
-     * 影响命令：{@code /dropsweeper items [all | world <id>]}
-     */
-    public int permissionLevelClean = 2;
-
-    /**
-     * 预编译过滤器：启动时从上面两个 List 构造。
-     * <p>
-     * 用 {@code transient} 让 Gson 不持久化——它是从原始 List 派生的，
-     * 每次从磁盘加载后通过 {@link #rebuildDerived()} 重建。
-     */
+    // transient：派生自 List，Gson 不持久化，加载后通过 rebuildDerived() 重建
     private transient ItemFilter whitelistFilter;
     private transient ItemFilter blacklistFilter;
     private transient Set<EntityType<?>> extraTypeFilter = Set.of();
@@ -171,7 +82,6 @@ public class DropsweeperConfig {
 
     private static volatile DropsweeperConfig INSTANCE;
 
-    /** 获取当前配置（首次访问时从磁盘加载或生成默认）。 */
     public static DropsweeperConfig get() {
         DropsweeperConfig local = INSTANCE;
         if (local == null) {
@@ -187,15 +97,9 @@ public class DropsweeperConfig {
     }
 
     /**
-     * 强制重新从磁盘加载（用于 {@code /dropsweeper config reload}）。
-     * <p>
-     * 重载后还会同步 {@link Dustbin} 的 bin 数量（如果 {@code dustbinCount} 变了）：
-     * <ul>
-     *   <li>新 {@code dustbinCount} &gt; 当前 → 补空 bin（保留数据）</li>
-     *   <li>新 {@code dustbinCount} &lt; 当前 → 调 {@code Dustbin.resize()} <b>直接截断</b>多余 bin（可能丢失物品）</li>
-     * </ul>
+     * 强制重新从磁盘加载。同步 {@link Dustbin} bin 数量（减少时直接截断，可能丢失物品）。
      *
-     * @return Dustbin resize 结果（用于调用方反馈玩家"丢失了几个非空 bin"）
+     * @return Dustbin resize 结果
      */
     public static synchronized Dustbin.ResizeResult reload() {
         int oldDustbinCount = Dustbin.getInstance().binCount();
@@ -211,10 +115,7 @@ public class DropsweeperConfig {
     }
 
     /**
-     * 把当前配置写回磁盘。
-     * <p>
-     * 玩家通过命令修改白/黑名单后调用，原子覆盖原文件。
-     * 失败时回滚到内存中的当前实例（不抛异常）。
+     * 把当前配置写回磁盘。失败时回滚到内存实例（不抛异常）。
      */
     public static synchronized void save() {
         DropsweeperConfig cfg = get();
@@ -229,10 +130,7 @@ public class DropsweeperConfig {
     }
 
     /**
-     * 从原始 List 重建预编译过滤器。
-     * <p>
-     * 必须在 {@link #loadOrCreate()} 之后调用一次（Gson 反序列化不会构造 transient 字段）。
-     * 也可在玩家通过命令修改名单后调用。
+     * 重建预编译过滤器。必须在 {@link #loadOrCreate()} 之后调用一次（Gson 不构造 transient 字段）。
      */
     public void rebuildDerived() {
         this.whitelistFilter = new ItemFilter(itemWhitelist, matchWildcard);
@@ -241,9 +139,7 @@ public class DropsweeperConfig {
     }
 
     /**
-     * 解析 {@code extraEntityTypes} 中的所有 EntityType 引用。
-     * <p>
-     * 任何 ID 无效或未注册时发 WARN 但不抛异常。
+     * 解析 extraEntityTypes 中的 EntityType 引用。无效 ID 发 WARN 但不抛异常。
      */
     private static Set<EntityType<?>> buildExtraTypeFilter(List<String> ids) {
         if (ids == null || ids.isEmpty()) return Set.of();
@@ -264,7 +160,6 @@ public class DropsweeperConfig {
         return set;
     }
 
-    /** 获取额外实体清理过滤器。 */
     public Set<EntityType<?>> extraTypeFilter() {
         if (extraTypeFilter == null) {
             extraTypeFilter = buildExtraTypeFilter(extraEntityTypes);
@@ -272,7 +167,6 @@ public class DropsweeperConfig {
         return extraTypeFilter;
     }
 
-    /** 获取白名单过滤器（懒构造）。 */
     public ItemFilter whitelistFilter() {
         ItemFilter f = whitelistFilter;
         if (f == null) {
@@ -282,7 +176,6 @@ public class DropsweeperConfig {
         return f;
     }
 
-    /** 获取黑名单过滤器（懒构造）。 */
     public ItemFilter blacklistFilter() {
         ItemFilter f = blacklistFilter;
         if (f == null) {
@@ -314,7 +207,7 @@ public class DropsweeperConfig {
                 def.rebuildDerived();
                 return def;
             }
-            // 给可能缺失的字段补默认值（玩家可能只填了部分字段）
+            // 玩家可能只填了部分字段——补默认值
             applyMissingDefaults(cfg);
             cfg.rebuildDerived();
             return cfg;

@@ -14,18 +14,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 自动周期清扫器。
- * <p>
- * 在每个 server tick 末被调用，按 {@link DropsweeperConfig#sweepIntervalSeconds}
+ * 自动周期清扫器。每个 server tick 末被调用，按 {@link DropsweeperConfig#sweepIntervalSeconds}
  * 周期触发 {@link Sweeper#sweepItemsAllWorlds}，并在到点前给玩家发倒计时提示。
- * <p>
- * 提示策略（参考 Sweeper-Maid）：
- * <ul>
- *   <li>剩余秒数 ∈ {@code announcePointsLong}（默认 60/30/15）→ 长时间提示（ActionBar 灰色，约 3 秒自动消失）</li>
- *   <li>剩余秒数 ∈ [1, {@code announceShortThreshold}] → 短时间提示（聊天金色，每秒一次）</li>
- *   <li>剩余 ≤ 0 → 触发清扫、广播完成消息 + 可点击"打开垃圾桶 N"链接、重置倒计时</li>
- * </ul>
- * 通道选择由 {@link DropsweeperConfig.AnnouncementChannel} 控制。
  * <p>
  * 首次 tick 跳过（避免服务器启动瞬间误触）。
  */
@@ -95,12 +85,6 @@ public class AutoSweeper {
 
     /**
      * 广播清扫完成消息 + 非空 bin 的可点击链接。
-     * <p>
-     * 行为（参考 sweepermaid）：
-     * <ul>
-     *   <li>主消息（青色）："清扫完成，处理 N 个，挤出 M 个"</li>
-     *   <li>链接（绿色 + 点击执行 {@code /dropsweeper dustbin <i>}）：列所有非空 bin</li>
-     * </ul>
      */
     private void broadcastSweepResult(MinecraftServer server, Sweeper.SweepResult result) {
         DropsweeperConfig cfg = DropsweeperConfig.get();

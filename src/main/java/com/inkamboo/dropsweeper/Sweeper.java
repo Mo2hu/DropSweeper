@@ -17,8 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 掉落物清理核心逻辑。
- * 设计为单例，便于从命令和 tick 事件中调用。
+ * 掉落物清理核心逻辑。单例。
  */
 public class Sweeper {
     public static final Sweeper INSTANCE = new Sweeper();
@@ -28,13 +27,6 @@ public class Sweeper {
 
     /**
      * 一次清扫的聚合结果。
-     *
-     * @param removed         被清理的物品总数量（按堆叠数计算）
-     * @param evicted         触发垃圾箱 FIFO 逐出时被覆盖的物品总数量
-     * @param blacklisted     命中黑名单被清理但不进 Dustbin 的物品数量
-     * @param extraRemoved    命中的额外实体（箭矢/经验球/投掷物）数量（按 entity 数，不是 stack 数）
-     * @param notFound        世界未找到的标志（仅 sweepItemsByWorldId 可能为 true）
-     * @param overloadByChunk 按 chunk 聚合的物品数量（用于过载警告）。key = chunk 坐标，value = 该 chunk 中本次清理的物品堆叠总数。
      */
     public record SweepResult(
             int removed,
@@ -68,21 +60,7 @@ public class Sweeper {
     }
 
     /**
-     * 清理指定世界内的所有掉落物。
-     * 物品被搬入垃圾箱，触发逐出时记录 evicted 计数。
-     * <p>
-     * <b>过滤策略</b>（参考 sweepermaid，顺序固定）：
-     * <ol>
-     *   <li>命中白名单 → 完全跳过（不清理、不入箱）</li>
-     *   <li>命中黑名单 → 清理但不进 Dustbin（避免垃圾箱爆满）</li>
-     *   <li>其他 → 清理并入 Dustbin</li>
-     * </ol>
-     * <p>
-     * <b>过载统计</b>：循环中按 {@code entity.chunkPosition()} 聚合被清理的物品数量，
-     * 写入 {@link SweepResult#overloadByChunk()}。调用方（{@link OverloadNotifier}）负责判断阈值和广播。
-     *
-     * @param world 要清理的世界
-     * @return 清理结果
+     * 清理指定世界内的所有掉落物。物品被搬入垃圾箱，触发逐出时记录 evicted 计数。
      */
     public SweepResult sweepItems(ServerLevel world) {
         DropsweeperConfig cfg = DropsweeperConfig.get();
@@ -167,9 +145,7 @@ public class Sweeper {
     }
 
     /**
-     * 清理指定世界内的所有掉落物。
-     *
-     * @return 清理结果；如果世界不存在或未加载则返回 {@link SweepResult#NOT_FOUND}
+     * 清理指定世界内的所有掉落物。世界不存在或未加载则返回 {@link SweepResult#NOT_FOUND}。
      */
     public SweepResult sweepItemsByWorldId(MinecraftServer server, Identifier worldId) {
         var worldKey = net.minecraft.resources.ResourceKey.create(
